@@ -11,7 +11,7 @@ import {
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
-import app from "../firebaseConfig";
+import { app, db } from "../firebaseConfig";
 import { useNavigate } from "react-router-dom";
 
 const LoginJs = () => {

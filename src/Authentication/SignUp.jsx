@@ -11,7 +11,8 @@ import {
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
-import app from "../firebaseConfig";
+import { app, db } from "../firebaseConfig";
+
 import { useNavigate } from "react-router-dom";
 
 const Signup = () => {
