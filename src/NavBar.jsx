@@ -56,6 +56,8 @@ const NavBar = ({ handleLogout }) => {
               },
             }}
           >
+            {" "}
+            <MenuItem onClick={() => navigate("/todo")}>Todo</MenuItem>
             <MenuItem onClick={() => navigate("/users")}>Users</MenuItem>
             <MenuItem onClick={() => navigate("/tasklist")}>Task List</MenuItem>
             <MenuItem onClick={() => navigate("/tasks")}>Tasks</MenuItem>
@@ -68,9 +70,9 @@ const NavBar = ({ handleLogout }) => {
               alignItems: "center",
             }}
           >
-            <Typography variant="h6" component="div" sx={{ mx: 2 }}>
-              Todo App
-            </Typography>
+            <Button color="inherit" onClick={() => navigate("/Todo")}>
+              Todo
+            </Button>
             <Button color="inherit" onClick={() => navigate("/users")}>
               Users
             </Button>
