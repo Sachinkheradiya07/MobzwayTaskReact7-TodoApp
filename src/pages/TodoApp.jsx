@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Typography,
@@ -12,6 +12,11 @@ import {
 import { DndProvider, useDrag, useDrop } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import Logout from "../Authentication/LogOut";
+import {
+  addListToFirestore,
+  getListsFromFirestore,
+  updateListInFirestore,
+} from "../firestoreFunctions";
 
 const ItemTypes = {
   TASK: "task",
@@ -104,24 +109,31 @@ const TodoApp = () => {
   const [taskPriority, setTaskPriority] = useState("");
   const [todoLists, setTodoLists] = useState([]);
 
-  const handleAddList = () => {
+  useEffect(() => {
+    const fetchData = async () => {
+      const lists = await getListsFromFirestore();
+      setTodoLists(lists);
+    };
+    fetchData();
+  }, []);
+
+  const handleAddList = async () => {
     if (listName.trim() !== "") {
-      setTodoLists([
-        ...todoLists,
-        {
-          listName: listName,
-          tasks: {
-            low: [],
-            medium: [],
-            high: [],
-          },
+      const newList = {
+        listName: listName,
+        tasks: {
+          low: [],
+          medium: [],
+          high: [],
         },
-      ]);
+      };
+      const listId = await addListToFirestore(newList);
+      setTodoLists([...todoLists, { id: listId, ...newList }]);
       setListName("");
     }
   };
 
-  const handleAddTask = (listIndex) => {
+  const handleAddTask = async (listIndex) => {
     if (taskTitle.trim() === "") {
       alert("Please enter a task title.");
       return;
@@ -137,6 +149,12 @@ const TodoApp = () => {
     updatedLists[listIndex].tasks[taskPriority].push(newTask);
     setTodoLists(updatedLists);
 
+    // Update Firestore
+    await updateListInFirestore(
+      updatedLists[listIndex].id,
+      updatedLists[listIndex]
+    );
+
     // Reset task input fields
     setTaskTitle("");
     setTaskDescription("");
@@ -144,7 +162,7 @@ const TodoApp = () => {
     setTaskPriority("");
   };
 
-  const moveTask = (
+  const moveTask = async (
     dragIndex,
     hoverIndex,
     dragPriority,
@@ -164,6 +182,16 @@ const TodoApp = () => {
       draggedTask
     );
     setTodoLists(updatedLists);
+
+    // Update Firestore
+    await updateListInFirestore(
+      updatedLists[dragListIndex].id,
+      updatedLists[dragListIndex]
+    );
+    await updateListInFirestore(
+      updatedLists[hoverListIndex].id,
+      updatedLists[hoverListIndex]
+    );
   };
 
   return (
@@ -192,7 +220,7 @@ const TodoApp = () => {
       <hr style={{ width: "100%" }} />
       <Grid container spacing={2}>
         {todoLists.map((list, listIndex) => (
-          <Grid item xs={12} sm={6} key={listIndex}>
+          <Grid item xs={12} sm={6} key={list.id}>
             <Box sx={{ border: "1px solid #ccc", p: 2, mb: 2 }}>
               <Typography variant="h4" align="center">
                 {list.listName}
@@ -208,35 +236,36 @@ const TodoApp = () => {
                     onChange={(e) => setTaskTitle(e.target.value)}
                   />
                 </FormControl>
-                <TextField
-                  label="Task Description"
-                  type="text"
-                  variant="outlined"
-                  size="small"
-                  value={taskDescription}
-                  onChange={(e) => setTaskDescription(e.target.value)}
-                  fullWidth
-                  sx={{ mb: 1 }}
-                />
-                <TextField
-                  label="Task Date"
-                  type="date"
-                  variant="outlined"
-                  size="small"
-                  value={taskDate}
-                  onChange={(e) => setTaskDate(e.target.value)}
-                  fullWidth
-                  sx={{ mb: 1 }}
-                  InputLabelProps={{
-                    shrink: true,
-                  }}
-                />
+                <FormControl fullWidth sx={{ mb: 1 }}>
+                  <TextField
+                    label="Task Description"
+                    type="text"
+                    variant="outlined"
+                    size="small"
+                    value={taskDescription}
+                    onChange={(e) => setTaskDescription(e.target.value)}
+                  />
+                </FormControl>
+                <FormControl fullWidth sx={{ mb: 1 }}>
+                  <TextField
+                    label="Task Date"
+                    type="date"
+                    variant="outlined"
+                    size="small"
+                    InputLabelProps={{
+                      shrink: true,
+                    }}
+                    value={taskDate}
+                    onChange={(e) => setTaskDate(e.target.value)}
+                  />
+                </FormControl>
                 <FormControl fullWidth sx={{ mb: 1 }}>
                   <Select
                     value={taskPriority}
                     onChange={(e) => setTaskPriority(e.target.value)}
                     displayEmpty
                     variant="outlined"
+                    size="small"
                   >
                     <MenuItem value="" disabled>
                       Select Priority
@@ -249,25 +278,25 @@ const TodoApp = () => {
                 <Button
                   variant="contained"
                   color="primary"
+                  fullWidth
                   onClick={() => handleAddTask(listIndex)}
                 >
                   Add Task
                 </Button>
-                <br /> <br />
-                <DndProvider backend={HTML5Backend}>
-                  <Box display="flex" justifyContent="space-between">
-                    {["low", "medium", "high"].map((priority) => (
-                      <TaskContainer
-                        key={priority}
-                        priority={priority}
-                        tasks={list.tasks[priority]}
-                        moveTask={moveTask}
-                        listIndex={listIndex}
-                      />
-                    ))}
-                  </Box>
-                </DndProvider>
               </Box>
+              <DndProvider backend={HTML5Backend}>
+                <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+                  {["low", "medium", "high"].map((priority) => (
+                    <TaskContainer
+                      key={priority}
+                      priority={priority}
+                      tasks={list.tasks[priority]}
+                      moveTask={moveTask}
+                      listIndex={listIndex}
+                    />
+                  ))}
+                </Box>
+              </DndProvider>
             </Box>
           </Grid>
         ))}
