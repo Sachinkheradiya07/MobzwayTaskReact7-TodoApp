@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState, useContext } from "react";
 import {
   Box,
   Typography,
@@ -9,14 +9,20 @@ import {
   MenuItem,
   Grid,
 } from "@mui/material";
+import {
+  collection,
+  getDocs,
+  addDoc,
+  updateDoc,
+  doc,
+  query,
+  where,
+} from "firebase/firestore";
+import { db } from "../firebaseConfig";
 import { DndProvider, useDrag, useDrop } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import Logout from "../Authentication/LogOut";
-import {
-  addListToFirestore,
-  getListsFromFirestore,
-  updateListInFirestore,
-} from "../firestoreFunctions";
+import { AuthContext } from "../Authentication/AuthContext"; // Assuming you have an AuthContext
 
 const ItemTypes = {
   TASK: "task",
@@ -46,7 +52,14 @@ const Task = ({ task, index, moveTask, priority, listIndex }) => {
         <Typography variant="subtitle1">{task.taskTitle}</Typography>
         <Typography variant="body2">{task.taskDescription}</Typography>
         <Typography variant="body2">{task.taskDate}</Typography>
-        <Typography variant="body2">{task.taskPriority}</Typography>
+        <Typography variant="body2">Priority: {task.taskPriority}</Typography>
+        <Typography variant="body2">Created by: {task.authorEmail}</Typography>
+        <Typography variant="body2">Created on: {task.createdTime}</Typography>
+        {task.updatedTime && (
+          <Typography variant="body2">
+            Updated on: {task.updatedTime}
+          </Typography>
+        )}
       </Box>
     </div>
   );
@@ -75,15 +88,21 @@ const TaskContainer = ({ priority, tasks, moveTask, listIndex }) => {
     <Box
       ref={drop}
       sx={{
-        width: "30%",
+        width: "100%",
         textAlign: "center",
         border: "2px solid #ccc",
         p: 1,
         minHeight: 100,
+        borderRadius: 4,
+        mb: 2,
       }}
     >
-      <Typography variant="h4" align="center">
-        {priority.charAt(0).toUpperCase() + priority.slice(1)}
+      <Typography
+        variant="h6"
+        align="center"
+        sx={{ textTransform: "capitalize", mb: 1 }}
+      >
+        {priority}
       </Typography>
       <Box>
         {tasks.map((task, index) => (
@@ -102,20 +121,51 @@ const TaskContainer = ({ priority, tasks, moveTask, listIndex }) => {
 };
 
 const TodoApp = () => {
+  const { currentUser } = useContext(AuthContext); // Get the current user from AuthContext
   const [listName, setListName] = useState("");
   const [taskTitle, setTaskTitle] = useState("");
   const [taskDescription, setTaskDescription] = useState("");
   const [taskDate, setTaskDate] = useState("");
   const [taskPriority, setTaskPriority] = useState("");
   const [todoLists, setTodoLists] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    const fetchData = async () => {
-      const lists = await getListsFromFirestore();
-      setTodoLists(lists);
-    };
-    fetchData();
-  }, []);
+    if (!currentUser) {
+      // Redirect to login page or show an error message
+      window.location.href = "/login"; // Or use a React Router redirect
+    } else {
+      const fetchTodoLists = async () => {
+        try {
+          setLoading(true);
+          const todoListsCollection = collection(db, "todoLists");
+          const q = query(
+            todoListsCollection,
+            where("userId", "==", currentUser.uid)
+          );
+          const todoListsSnapshot = await getDocs(q);
+
+          if (todoListsSnapshot.empty) {
+            console.log("No todo lists found.");
+          } else {
+            const todoListsData = todoListsSnapshot.docs.map((doc) => ({
+              id: doc.id,
+              ...doc.data(),
+            }));
+            setTodoLists(todoListsData);
+          }
+        } catch (error) {
+          console.error("Error fetching todo lists data:", error);
+          setError(error.message);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      fetchTodoLists();
+    }
+  }, [currentUser]);
 
   const handleAddList = async () => {
     if (listName.trim() !== "") {
@@ -126,10 +176,16 @@ const TodoApp = () => {
           medium: [],
           high: [],
         },
+        userId: currentUser.uid, // Store the user's ID
       };
-      const listId = await addListToFirestore(newList);
-      setTodoLists([...todoLists, { id: listId, ...newList }]);
-      setListName("");
+      try {
+        const docRef = await addDoc(collection(db, "todoLists"), newList);
+        setTodoLists([...todoLists, { ...newList, id: docRef.id }]);
+        setListName("");
+      } catch (error) {
+        console.error("Error adding new list:", error);
+        setError("Could not add list. Try again.");
+      }
     }
   };
 
@@ -139,27 +195,34 @@ const TodoApp = () => {
       return;
     }
 
-    const updatedLists = [...todoLists];
     const newTask = {
       taskTitle: taskTitle,
       taskDescription: taskDescription,
       taskDate: taskDate,
       taskPriority: taskPriority,
+      authorEmail: currentUser.email, // Store the author's email
+      createdTime: new Date().toISOString(), // Store the creation time
+      updatedTime: null,
+      userId: currentUser.uid, // Store the user's ID
     };
+
+    const updatedLists = [...todoLists];
     updatedLists[listIndex].tasks[taskPriority].push(newTask);
-    setTodoLists(updatedLists);
 
-    // Update Firestore
-    await updateListInFirestore(
-      updatedLists[listIndex].id,
-      updatedLists[listIndex]
-    );
-
-    // Reset task input fields
-    setTaskTitle("");
-    setTaskDescription("");
-    setTaskDate("");
-    setTaskPriority("");
+    try {
+      const listId = updatedLists[listIndex].id;
+      await updateDoc(doc(db, "todoLists", listId), {
+        tasks: updatedLists[listIndex].tasks,
+      });
+      setTodoLists(updatedLists);
+      setTaskTitle("");
+      setTaskDescription("");
+      setTaskDate("");
+      setTaskPriority("");
+    } catch (error) {
+      console.error("Error adding task:", error);
+      setError("Could not add task. Try again.");
+    }
   };
 
   const moveTask = async (
@@ -175,24 +238,33 @@ const TodoApp = () => {
       dragIndex,
       1
     )[0];
-    draggedTask.taskPriority = hoverPriority; // Update task priority
+    draggedTask.taskPriority = hoverPriority;
+    draggedTask.updatedTime = new Date().toISOString(); // Update the time when the task is moved
     updatedLists[hoverListIndex].tasks[hoverPriority].splice(
       hoverIndex,
       0,
       draggedTask
     );
-    setTodoLists(updatedLists);
 
-    // Update Firestore
-    await updateListInFirestore(
-      updatedLists[dragListIndex].id,
-      updatedLists[dragListIndex]
-    );
-    await updateListInFirestore(
-      updatedLists[hoverListIndex].id,
-      updatedLists[hoverListIndex]
-    );
+    try {
+      const listId = updatedLists[hoverListIndex].id;
+      await updateDoc(doc(db, "todoLists", listId), {
+        tasks: updatedLists[hoverListIndex].tasks,
+      });
+      setTodoLists(updatedLists);
+    } catch (error) {
+      console.error("Error moving task:", error);
+      setError("Could not move task. Try again.");
+    }
   };
+
+  if (loading) {
+    return <Typography>Loading...</Typography>;
+  }
+
+  if (error) {
+    return <Typography>Error: {error}</Typography>;
+  }
 
   return (
     <>
@@ -220,13 +292,13 @@ const TodoApp = () => {
       <hr style={{ width: "100%" }} />
       <Grid container spacing={2}>
         {todoLists.map((list, listIndex) => (
-          <Grid item xs={12} sm={6} key={list.id}>
+          <Grid item xs={12} sm={6} md={6} key={list.id}>
             <Box sx={{ border: "1px solid #ccc", p: 2, mb: 2 }}>
               <Typography variant="h4" align="center">
                 {list.listName}
               </Typography>
               <Box sx={{ mb: 2 }}>
-                <FormControl fullWidth sx={{ mb: 1 }}>
+                <FormControl fullWidth sx={{ mb: 2 }}>
                   <TextField
                     label="Task Title"
                     type="text"
@@ -236,7 +308,7 @@ const TodoApp = () => {
                     onChange={(e) => setTaskTitle(e.target.value)}
                   />
                 </FormControl>
-                <FormControl fullWidth sx={{ mb: 1 }}>
+                <FormControl fullWidth sx={{ mb: 2 }}>
                   <TextField
                     label="Task Description"
                     type="text"
@@ -246,30 +318,22 @@ const TodoApp = () => {
                     onChange={(e) => setTaskDescription(e.target.value)}
                   />
                 </FormControl>
-                <FormControl fullWidth sx={{ mb: 1 }}>
+                <FormControl fullWidth sx={{ mb: 2 }}>
                   <TextField
-                    label="Task Date"
+                    label=""
                     type="date"
                     variant="outlined"
                     size="small"
-                    InputLabelProps={{
-                      shrink: true,
-                    }}
                     value={taskDate}
                     onChange={(e) => setTaskDate(e.target.value)}
                   />
                 </FormControl>
-                <FormControl fullWidth sx={{ mb: 1 }}>
+                <FormControl fullWidth sx={{ mb: 2 }}>
                   <Select
+                    label="Task Priority"
                     value={taskPriority}
                     onChange={(e) => setTaskPriority(e.target.value)}
-                    displayEmpty
-                    variant="outlined"
-                    size="small"
                   >
-                    <MenuItem value="" disabled>
-                      Select Priority
-                    </MenuItem>
                     <MenuItem value="low">Low</MenuItem>
                     <MenuItem value="medium">Medium</MenuItem>
                     <MenuItem value="high">High</MenuItem>
@@ -285,16 +349,25 @@ const TodoApp = () => {
                 </Button>
               </Box>
               <DndProvider backend={HTML5Backend}>
-                <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-                  {["low", "medium", "high"].map((priority) => (
-                    <TaskContainer
-                      key={priority}
-                      priority={priority}
-                      tasks={list.tasks[priority]}
-                      moveTask={moveTask}
-                      listIndex={listIndex}
-                    />
-                  ))}
+                <Box sx={{ display: "flex", gap: 2 }}>
+                  <TaskContainer
+                    priority="low"
+                    tasks={list.tasks.low}
+                    moveTask={moveTask}
+                    listIndex={listIndex}
+                  />
+                  <TaskContainer
+                    priority="medium"
+                    tasks={list.tasks.medium}
+                    moveTask={moveTask}
+                    listIndex={listIndex}
+                  />
+                  <TaskContainer
+                    priority="high"
+                    tasks={list.tasks.high}
+                    moveTask={moveTask}
+                    listIndex={listIndex}
+                  />
                 </Box>
               </DndProvider>
             </Box>

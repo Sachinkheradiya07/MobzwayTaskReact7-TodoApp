@@ -12,7 +12,7 @@ import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
 import { app, db } from "../firebaseConfig";
-
+import { doc, setDoc } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
 
 const Signup = () => {
@@ -23,31 +23,38 @@ const Signup = () => {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
-  const handleClickShowPassword = () => setShowPassword(!showPassword);
+  const handleClickShowPassword = () => setShowPassword((prev) => !prev);
 
-  const handleEmailChange = (e) => {
-    setEmail(e.target.value);
-  };
+  const handleEmailChange = (e) => setEmail(e.target.value);
+  const handlePasswordChange = (e) => setPassword(e.target.value);
 
-  const handlePasswordChange = (e) => {
-    setPassword(e.target.value);
-  };
-
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    createUserWithEmailAndPassword(auth, email, password)
-      .then((response) => {})
-      .then(() => {
-        console.log("User profile updated with name:");
-        navigate("/todo");
-      })
+    try {
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
+      const user = userCredential.user;
 
-      .catch((error) => {
-        alert(error.message);
+      // Get user's IP address
+      const ipAddress = await fetch("https://api.ipify.org?format=json")
+        .then((res) => res.json())
+        .then((data) => data.ip);
+
+      // Store user data in Firestore
+      await setDoc(doc(db, "users", user.uid), {
+        email: user.email,
+        ipAddress,
+        signupTime: new Date(),
       });
-    console.log("Email:", email);
-    console.log("Password:", password);
-    // Reset form fields after submission if needed
+
+      navigate("/todo");
+    } catch (error) {
+      alert(error.message);
+    }
+
     setEmail("");
     setPassword("");
   };
@@ -68,7 +75,6 @@ const Signup = () => {
       <FormControl fullWidth margin="normal" required>
         <TextField
           label="Enter Your Password"
-          placeholder="Enter Your Password"
           type={showPassword ? "text" : "password"}
           value={password}
           onChange={handlePasswordChange}
@@ -86,7 +92,6 @@ const Signup = () => {
           }}
         />
       </FormControl>
-
       <Button
         variant="contained"
         color="primary"
