@@ -37,13 +37,13 @@ const LoginJs = () => {
     signInWithEmailAndPassword(auth, email, password)
       .then((response) => {
         console.log(response.user);
-        // Redirect to /todo page after successful login
+
         navigate("/todo");
       })
       .catch((error) => {
         alert(error.message);
       });
-    // Reset form fields after submission if needed
+
     setEmail("");
     setPassword("");
   };

@@ -33,11 +33,10 @@ const Tasks = () => {
             id: doc.id,
             ...doc.data(),
           }));
-          const allTasks = listsData.flatMap(
-            (list) =>
-              Object.values(list.tasks)
-                .flat()
-                .map((task) => ({ ...task, listName: list.listName })) // Add listName to each task
+          const allTasks = listsData.flatMap((list) =>
+            Object.values(list.tasks)
+              .flat()
+              .map((task) => ({ ...task, listName: list.listName }))
           );
           setTasks(allTasks);
         }

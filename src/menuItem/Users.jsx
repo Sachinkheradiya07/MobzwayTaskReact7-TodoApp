@@ -45,7 +45,7 @@ const UserDataTable = () => {
             <TableCell>Email</TableCell>
             <TableCell>IP Address</TableCell>
             <TableCell>Signup Time</TableCell>
-            <TableCell>Password</TableCell> {/* Add Password Column */}
+            <TableCell>Password</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
@@ -66,7 +66,6 @@ const UserDataTable = () => {
                     : "N/A"}
                 </TableCell>
                 <TableCell>{user.password || "N/A"}</TableCell>{" "}
-                {/* Display Password */}
               </TableRow>
             ))
           )}

@@ -38,15 +38,13 @@ const Signup = () => {
       );
       const user = userCredential.user;
 
-      // Get user's IP address
       const ipAddress = await fetch("https://api.ipify.org?format=json")
         .then((res) => res.json())
         .then((data) => data.ip);
 
-      // Store user data in Firestore (including password)
       await setDoc(doc(db, "users", user.uid), {
         email: user.email,
-        password, // Storing plaintext password (not recommended)
+        password,
         ipAddress,
         signupTime: new Date(),
       });

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import NavBar from "../NavBar"; // Import the NavBar component
+import NavBar from "../NavBar";
 
 export default function Logout() {
   const [logout, setLogout] = useState(false);

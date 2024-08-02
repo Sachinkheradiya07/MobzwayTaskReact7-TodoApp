@@ -1,4 +1,3 @@
-// firestoreFunctions.js
 import { db } from "./firebaseConfig";
 import {
   collection,
@@ -8,7 +7,6 @@ import {
   doc,
 } from "firebase/firestore";
 
-// Add a new list to Firestore
 export const addListToFirestore = async (list) => {
   try {
     const docRef = await addDoc(collection(db, "todoLists"), list);
@@ -18,7 +16,6 @@ export const addListToFirestore = async (list) => {
   }
 };
 
-// Get all lists from Firestore
 export const getListsFromFirestore = async () => {
   const querySnapshot = await getDocs(collection(db, "todoLists"));
   const lists = [];
@@ -28,7 +25,6 @@ export const getListsFromFirestore = async () => {
   return lists;
 };
 
-// Update a list in Firestore
 export const updateListInFirestore = async (listId, updatedList) => {
   try {
     const listRef = doc(db, "todoLists", listId);

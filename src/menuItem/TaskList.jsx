@@ -51,7 +51,6 @@ const TaskList = () => {
             return acc;
           }, {});
 
-          // Convert aggregated data to array
           const taskArray = Object.values(aggregatedData);
           setTasks(taskArray);
         }

@@ -22,7 +22,7 @@ import { db } from "../firebaseConfig";
 import { DndProvider, useDrag, useDrop } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import Logout from "../Authentication/LogOut";
-import { AuthContext } from "../Authentication/AuthContext"; // Assuming you have an AuthContext
+import { AuthContext } from "../Authentication/AuthContext";
 
 const ItemTypes = {
   TASK: "task",
@@ -121,7 +121,7 @@ const TaskContainer = ({ priority, tasks, moveTask, listIndex }) => {
 };
 
 const TodoApp = () => {
-  const { currentUser } = useContext(AuthContext); // Get the current user from AuthContext
+  const { currentUser } = useContext(AuthContext);
   const [listName, setListName] = useState("");
   const [taskTitle, setTaskTitle] = useState("");
   const [taskDescription, setTaskDescription] = useState("");
@@ -133,8 +133,7 @@ const TodoApp = () => {
 
   useEffect(() => {
     if (!currentUser) {
-      // Redirect to login page or show an error message
-      window.location.href = "/login"; // Or use a React Router redirect
+      window.location.href = "/login";
     } else {
       const fetchTodoLists = async () => {
         try {
@@ -176,7 +175,10 @@ const TodoApp = () => {
           medium: [],
           high: [],
         },
-        userId: currentUser.uid, // Store the user's ID
+        userId: currentUser.uid,
+        authorEmail: currentUser.email,
+        createdTime: new Date().toISOString(),
+        updatedTime: null,
       };
       try {
         const docRef = await addDoc(collection(db, "todoLists"), newList);
@@ -200,10 +202,10 @@ const TodoApp = () => {
       taskDescription: taskDescription,
       taskDate: taskDate,
       taskPriority: taskPriority,
-      authorEmail: currentUser.email, // Store the author's email
-      createdTime: new Date().toISOString(), // Store the creation time
+      authorEmail: currentUser.email,
+      createdTime: new Date().toISOString(),
       updatedTime: null,
-      userId: currentUser.uid, // Store the user's ID
+      userId: currentUser.uid,
     };
 
     const updatedLists = [...todoLists];
@@ -239,7 +241,7 @@ const TodoApp = () => {
       1
     )[0];
     draggedTask.taskPriority = hoverPriority;
-    draggedTask.updatedTime = new Date().toISOString(); // Update the time when the task is moved
+    draggedTask.updatedTime = new Date().toISOString();
     updatedLists[hoverListIndex].tasks[hoverPriority].splice(
       hoverIndex,
       0,
@@ -292,83 +294,93 @@ const TodoApp = () => {
       <hr style={{ width: "100%" }} />
       <Grid container spacing={2}>
         {todoLists.map((list, listIndex) => (
-          <Grid item xs={12} sm={6} md={6} key={list.id}>
-            <Box sx={{ border: "1px solid #ccc", p: 2, mb: 2 }}>
-              <Typography variant="h4" align="center">
+          <Grid item xs={12} sm={6} key={listIndex}>
+            <Box
+              sx={{
+                mb: 2,
+                p: 2,
+                border: "1px solid #ccc",
+                borderRadius: 4,
+                boxShadow: 1,
+              }}
+            >
+              <Typography variant="h6" align="center">
                 {list.listName}
               </Typography>
-              <Box sx={{ mb: 2 }}>
-                <FormControl fullWidth sx={{ mb: 2 }}>
-                  <TextField
-                    label="Task Title"
-                    type="text"
-                    variant="outlined"
-                    size="small"
-                    value={taskTitle}
-                    onChange={(e) => setTaskTitle(e.target.value)}
-                  />
-                </FormControl>
-                <FormControl fullWidth sx={{ mb: 2 }}>
-                  <TextField
-                    label="Task Description"
-                    type="text"
-                    variant="outlined"
-                    size="small"
-                    value={taskDescription}
-                    onChange={(e) => setTaskDescription(e.target.value)}
-                  />
-                </FormControl>
-                <FormControl fullWidth sx={{ mb: 2 }}>
-                  <TextField
-                    label=""
-                    type="date"
-                    variant="outlined"
-                    size="small"
-                    value={taskDate}
-                    onChange={(e) => setTaskDate(e.target.value)}
-                  />
-                </FormControl>
-                <FormControl fullWidth sx={{ mb: 2 }}>
-                  <Select
-                    label="Task Priority"
-                    value={taskPriority}
-                    onChange={(e) => setTaskPriority(e.target.value)}
-                  >
-                    <MenuItem value="low">Low</MenuItem>
-                    <MenuItem value="medium">Medium</MenuItem>
-                    <MenuItem value="high">High</MenuItem>
-                  </Select>
-                </FormControl>
-                <Button
-                  variant="contained"
-                  color="primary"
-                  fullWidth
-                  onClick={() => handleAddTask(listIndex)}
+              <FormControl fullWidth sx={{ mb: 2 }}>
+                <TextField
+                  label="Enter Task Title"
+                  type="text"
+                  variant="outlined"
+                  size="small"
+                  value={taskTitle}
+                  onChange={(e) => setTaskTitle(e.target.value)}
+                />
+              </FormControl>
+              <FormControl fullWidth sx={{ mb: 2 }}>
+                <TextField
+                  label="Enter Task Description"
+                  type="text"
+                  variant="outlined"
+                  size="small"
+                  value={taskDescription}
+                  onChange={(e) => setTaskDescription(e.target.value)}
+                />
+              </FormControl>
+              <FormControl fullWidth sx={{ mb: 2 }}>
+                <TextField
+                  label=""
+                  type="date"
+                  variant="outlined"
+                  size="small"
+                  value={taskDate}
+                  onChange={(e) => setTaskDate(e.target.value)}
+                />
+              </FormControl>
+              <FormControl fullWidth sx={{ mb: 2 }}>
+                <Select
+                  variant="outlined"
+                  size="small"
+                  value={taskPriority}
+                  onChange={(e) => setTaskPriority(e.target.value)}
+                  displayEmpty
                 >
-                  Add Task
-                </Button>
-              </Box>
+                  <MenuItem value="" disabled>
+                    Select Priority
+                  </MenuItem>
+                  <MenuItem value="low">Low</MenuItem>
+                  <MenuItem value="medium">Medium</MenuItem>
+                  <MenuItem value="high">High</MenuItem>
+                </Select>
+              </FormControl>
+              <Button
+                variant="contained"
+                color="primary"
+                fullWidth
+                onClick={() => handleAddTask(listIndex)}
+              >
+                Add Task
+              </Button>
+              <hr style={{ width: "100%", margin: "20px 0" }} />
               <DndProvider backend={HTML5Backend}>
-                <Box sx={{ display: "flex", gap: 2 }}>
-                  <TaskContainer
-                    priority="low"
-                    tasks={list.tasks.low}
-                    moveTask={moveTask}
-                    listIndex={listIndex}
-                  />
-                  <TaskContainer
-                    priority="medium"
-                    tasks={list.tasks.medium}
-                    moveTask={moveTask}
-                    listIndex={listIndex}
-                  />
-                  <TaskContainer
-                    priority="high"
-                    tasks={list.tasks.high}
-                    moveTask={moveTask}
-                    listIndex={listIndex}
-                  />
-                </Box>
+                <TaskContainer
+                  priority="low"
+                  tasks={list.tasks.low}
+                  moveTask={moveTask}
+                  listIndex={listIndex}
+                />
+                <TaskContainer
+                  priority="medium"
+                  tasks={list.tasks.medium}
+                  moveTask={moveTask}
+                  listIndex={listIndex}
+                />
+                <TaskContainer
+                  priority="high"
+                  tasks={list.tasks.high}
+                  moveTask={moveTask}
+                  listIndex={listIndex}
+                />
               </DndProvider>
             </Box>
           </Grid>
