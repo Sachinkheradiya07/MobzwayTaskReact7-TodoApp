@@ -36,15 +36,14 @@ const TaskList = () => {
             ...doc.data(),
           }));
 
-          // Aggregate tasks by list name
           const aggregatedData = listsData.reduce((acc, list) => {
             const listName = list.listName;
             if (!acc[listName]) {
               acc[listName] = {
                 listName,
-                authorEmail: list.authorEmail || "Unknown",
-                createdTime: list.createdTime || new Date(),
-                updatedTime: list.updatedTime || new Date(),
+                authorEmail: list.authorEmail,
+                createdTime: list.createdTime,
+                updatedTime: list.updatedTime,
                 taskCount: 0,
               };
             }

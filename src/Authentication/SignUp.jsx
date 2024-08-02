@@ -11,12 +11,12 @@ import {
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
-import { app, db } from "../firebaseConfig";
+import { db } from "../firebaseConfig";
 import { doc, setDoc } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
 
 const Signup = () => {
-  const auth = getAuth(app);
+  const auth = getAuth();
   const navigate = useNavigate();
 
   const [email, setEmail] = useState("");
@@ -43,9 +43,10 @@ const Signup = () => {
         .then((res) => res.json())
         .then((data) => data.ip);
 
-      // Store user data in Firestore
+      // Store user data in Firestore (including password)
       await setDoc(doc(db, "users", user.uid), {
         email: user.email,
+        password, // Storing plaintext password (not recommended)
         ipAddress,
         signupTime: new Date(),
       });
