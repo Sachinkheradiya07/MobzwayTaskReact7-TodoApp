@@ -95,6 +95,8 @@ const TaskContainer = ({ priority, tasks, moveTask, listIndex }) => {
         minHeight: 100,
         borderRadius: 4,
         mb: 2,
+        maxHeight: 300, // Adjust this value to control the height
+        overflowY: "auto", // Enables vertical scrolling
       }}
     >
       <Typography
@@ -302,102 +304,108 @@ const TodoApp = () => {
           Add List
         </Button>
       </Box>
-      <hr style={{ width: "100%" }} />
-      <Grid container spacing={2}>
-        {todoLists.map((list, listIndex) => (
-          <Grid item xs={12} sm={6} key={listIndex}>
-            <Box
-              sx={{
-                border: "1px solid #ccc",
-                borderRadius: 8,
-                p: 2,
-                boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
-              }}
-            >
-              <Typography variant="h6" align="center">
-                {list.listName}
-              </Typography>
-              <Box sx={{ mb: 2 }}>
-                <FormControl fullWidth sx={{ mb: 1 }}>
-                  <TextField
-                    label="Task Title"
-                    variant="outlined"
-                    size="small"
-                    value={taskTitle}
-                    onChange={(e) => setTaskTitle(e.target.value)}
-                  />
-                </FormControl>
-                <FormControl fullWidth sx={{ mb: 1 }}>
-                  <TextField
-                    label="Task Description"
-                    variant="outlined"
-                    size="small"
-                    value={taskDescription}
-                    onChange={(e) => setTaskDescription(e.target.value)}
-                  />
-                </FormControl>
-                <FormControl fullWidth sx={{ mb: 1 }}>
-                  <TextField
-                    label="Task Date"
-                    variant="outlined"
-                    size="small"
-                    type="date"
-                    value={taskDate}
-                    onChange={(e) => setTaskDate(e.target.value)}
-                    InputLabelProps={{
-                      shrink: true,
-                    }}
-                  />
-                </FormControl>
-                <FormControl fullWidth>
-                  <Select
-                    value={taskPriority}
-                    onChange={(e) => setTaskPriority(e.target.value)}
-                    displayEmpty
-                    inputProps={{ "aria-label": "Select task priority" }}
-                  >
-                    <MenuItem value="" disabled>
-                      Select task priority
-                    </MenuItem>
-                    <MenuItem value="low">Low</MenuItem>
-                    <MenuItem value="medium">Medium</MenuItem>
-                    <MenuItem value="high">High</MenuItem>
-                  </Select>
-                </FormControl>
-                <Button
-                  variant="contained"
-                  color="primary"
-                  fullWidth
-                  sx={{ mt: 2 }}
-                  onClick={() => handleAddTask(listIndex)}
+
+      <DndProvider backend={HTML5Backend}>
+        <Box
+          sx={{
+            maxWidth: "100%",
+            overflowY: "auto", // Enables vertical scrolling
+            height: "calc(100vh - 150px)", // Adjust height as needed
+          }}
+        >
+          <Grid container spacing={2} sx={{ px: 2 }}>
+            {todoLists.map((list, listIndex) => (
+              <Grid item xs={12} md={6} lg={4} key={list.id}>
+                <Box
+                  sx={{
+                    p: 2,
+                    border: "1px solid #ccc",
+                    borderRadius: 4,
+                    boxShadow: 2,
+                    height: "100%",
+                  }}
                 >
-                  Add Task
-                </Button>
-              </Box>
-              <DndProvider backend={HTML5Backend}>
-                <TaskContainer
-                  priority="low"
-                  tasks={list.tasks.low}
-                  moveTask={moveTask}
-                  listIndex={listIndex}
-                />
-                <TaskContainer
-                  priority="medium"
-                  tasks={list.tasks.medium}
-                  moveTask={moveTask}
-                  listIndex={listIndex}
-                />
-                <TaskContainer
-                  priority="high"
-                  tasks={list.tasks.high}
-                  moveTask={moveTask}
-                  listIndex={listIndex}
-                />
-              </DndProvider>
-            </Box>
+                  <Typography variant="h5" align="center" gutterBottom>
+                    {list.listName}
+                  </Typography>
+                  <Box sx={{ mb: 2 }}>
+                    <TextField
+                      label="Task Title"
+                      variant="outlined"
+                      size="small"
+                      fullWidth
+                      value={taskTitle}
+                      onChange={(e) => setTaskTitle(e.target.value)}
+                    />
+                    <TextField
+                      label="Task Description"
+                      variant="outlined"
+                      size="small"
+                      fullWidth
+                      sx={{ mt: 1 }}
+                      value={taskDescription}
+                      onChange={(e) => setTaskDescription(e.target.value)}
+                    />
+                    <TextField
+                      label="Task Date"
+                      type="date"
+                      variant="outlined"
+                      size="small"
+                      fullWidth
+                      sx={{ mt: 1 }}
+                      InputLabelProps={{ shrink: true }}
+                      value={taskDate}
+                      onChange={(e) => setTaskDate(e.target.value)}
+                    />
+                    <FormControl fullWidth sx={{ mt: 1 }}>
+                      <Select
+                        value={taskPriority}
+                        onChange={(e) => setTaskPriority(e.target.value)}
+                        displayEmpty
+                        inputProps={{ "aria-label": "Priority" }}
+                      >
+                        <MenuItem value="" disabled>
+                          Select Priority
+                        </MenuItem>
+                        <MenuItem value="low">Low</MenuItem>
+                        <MenuItem value="medium">Medium</MenuItem>
+                        <MenuItem value="high">High</MenuItem>
+                      </Select>
+                    </FormControl>
+                    <Button
+                      variant="contained"
+                      color="primary"
+                      fullWidth
+                      sx={{ mt: 2 }}
+                      onClick={() => handleAddTask(listIndex)}
+                    >
+                      Add Task
+                    </Button>
+                  </Box>
+                  <TaskContainer
+                    priority="low"
+                    tasks={list.tasks.low}
+                    moveTask={moveTask}
+                    listIndex={listIndex}
+                  />
+                  <TaskContainer
+                    priority="medium"
+                    tasks={list.tasks.medium}
+                    moveTask={moveTask}
+                    listIndex={listIndex}
+                  />
+                  <TaskContainer
+                    priority="high"
+                    tasks={list.tasks.high}
+                    moveTask={moveTask}
+                    listIndex={listIndex}
+                  />
+                </Box>
+              </Grid>
+            ))}
           </Grid>
-        ))}
-      </Grid>
+        </Box>
+      </DndProvider>
     </>
   );
 };
