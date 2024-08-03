@@ -236,24 +236,35 @@ const TodoApp = () => {
     hoverListIndex
   ) => {
     const updatedLists = [...todoLists];
+
     const draggedTask = updatedLists[dragListIndex].tasks[dragPriority].splice(
       dragIndex,
       1
     )[0];
+
     draggedTask.taskPriority = hoverPriority;
     draggedTask.updatedTime = new Date().toISOString();
+
     updatedLists[hoverListIndex].tasks[hoverPriority].splice(
       hoverIndex,
       0,
       draggedTask
     );
 
+    setTodoLists(updatedLists);
+
     try {
-      const listId = updatedLists[hoverListIndex].id;
-      await updateDoc(doc(db, "todoLists", listId), {
-        tasks: updatedLists[hoverListIndex].tasks,
+      const sourceListId = updatedLists[dragListIndex].id;
+      await updateDoc(doc(db, "todoLists", sourceListId), {
+        tasks: updatedLists[dragListIndex].tasks,
       });
-      setTodoLists(updatedLists);
+
+      const targetListId = updatedLists[hoverListIndex].id;
+      if (sourceListId !== targetListId) {
+        await updateDoc(doc(db, "todoLists", targetListId), {
+          tasks: updatedLists[hoverListIndex].tasks,
+        });
+      }
     } catch (error) {
       console.error("Error moving task:", error);
       setError("Could not move task. Try again.");
@@ -297,71 +308,72 @@ const TodoApp = () => {
           <Grid item xs={12} sm={6} key={listIndex}>
             <Box
               sx={{
-                mb: 2,
-                p: 2,
                 border: "1px solid #ccc",
-                borderRadius: 4,
-                boxShadow: 1,
+                borderRadius: 8,
+                p: 2,
+                boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
               }}
             >
               <Typography variant="h6" align="center">
                 {list.listName}
               </Typography>
-              <FormControl fullWidth sx={{ mb: 2 }}>
-                <TextField
-                  label="Enter Task Title"
-                  type="text"
-                  variant="outlined"
-                  size="small"
-                  value={taskTitle}
-                  onChange={(e) => setTaskTitle(e.target.value)}
-                />
-              </FormControl>
-              <FormControl fullWidth sx={{ mb: 2 }}>
-                <TextField
-                  label="Enter Task Description"
-                  type="text"
-                  variant="outlined"
-                  size="small"
-                  value={taskDescription}
-                  onChange={(e) => setTaskDescription(e.target.value)}
-                />
-              </FormControl>
-              <FormControl fullWidth sx={{ mb: 2 }}>
-                <TextField
-                  label=""
-                  type="date"
-                  variant="outlined"
-                  size="small"
-                  value={taskDate}
-                  onChange={(e) => setTaskDate(e.target.value)}
-                />
-              </FormControl>
-              <FormControl fullWidth sx={{ mb: 2 }}>
-                <Select
-                  variant="outlined"
-                  size="small"
-                  value={taskPriority}
-                  onChange={(e) => setTaskPriority(e.target.value)}
-                  displayEmpty
+              <Box sx={{ mb: 2 }}>
+                <FormControl fullWidth sx={{ mb: 1 }}>
+                  <TextField
+                    label="Task Title"
+                    variant="outlined"
+                    size="small"
+                    value={taskTitle}
+                    onChange={(e) => setTaskTitle(e.target.value)}
+                  />
+                </FormControl>
+                <FormControl fullWidth sx={{ mb: 1 }}>
+                  <TextField
+                    label="Task Description"
+                    variant="outlined"
+                    size="small"
+                    value={taskDescription}
+                    onChange={(e) => setTaskDescription(e.target.value)}
+                  />
+                </FormControl>
+                <FormControl fullWidth sx={{ mb: 1 }}>
+                  <TextField
+                    label="Task Date"
+                    variant="outlined"
+                    size="small"
+                    type="date"
+                    value={taskDate}
+                    onChange={(e) => setTaskDate(e.target.value)}
+                    InputLabelProps={{
+                      shrink: true,
+                    }}
+                  />
+                </FormControl>
+                <FormControl fullWidth>
+                  <Select
+                    value={taskPriority}
+                    onChange={(e) => setTaskPriority(e.target.value)}
+                    displayEmpty
+                    inputProps={{ "aria-label": "Select task priority" }}
+                  >
+                    <MenuItem value="" disabled>
+                      Select task priority
+                    </MenuItem>
+                    <MenuItem value="low">Low</MenuItem>
+                    <MenuItem value="medium">Medium</MenuItem>
+                    <MenuItem value="high">High</MenuItem>
+                  </Select>
+                </FormControl>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  fullWidth
+                  sx={{ mt: 2 }}
+                  onClick={() => handleAddTask(listIndex)}
                 >
-                  <MenuItem value="" disabled>
-                    Select Priority
-                  </MenuItem>
-                  <MenuItem value="low">Low</MenuItem>
-                  <MenuItem value="medium">Medium</MenuItem>
-                  <MenuItem value="high">High</MenuItem>
-                </Select>
-              </FormControl>
-              <Button
-                variant="contained"
-                color="primary"
-                fullWidth
-                onClick={() => handleAddTask(listIndex)}
-              >
-                Add Task
-              </Button>
-              <hr style={{ width: "100%", margin: "20px 0" }} />
+                  Add Task
+                </Button>
+              </Box>
               <DndProvider backend={HTML5Backend}>
                 <TaskContainer
                   priority="low"
